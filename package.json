@@ -1,0 +1,14 @@
+{
+  "name": "up-rent-smart-logistics",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @up-rent/web dev",
+    "typecheck": "pnpm --filter @up-rent/web typecheck",
+    "lint": "pnpm --filter @up-rent/web lint",
+    "test:web": "pnpm --filter @up-rent/web test",
+    "build": "pnpm --filter @up-rent/web build",
+    "test": "pnpm test:web"
+  }
+}

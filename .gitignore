@@ -1,0 +1,26 @@
+# Node.js
+node_modules/
+.next/
+coverage/
+dist/
+.pnpm-store/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+
+# Environment files: commit examples only.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Tooling and operating system files
+.DS_Store
+.idea/
+.vscode/

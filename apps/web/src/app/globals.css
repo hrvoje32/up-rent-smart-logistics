@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.foundation-page {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.foundation-page h1,
+.foundation-page p {
+  margin: 0;
+}
+
+.foundation-page h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.foundation-page p:not(.eyebrow) {
+  max-width: 42rem;
+  color: #475569;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
