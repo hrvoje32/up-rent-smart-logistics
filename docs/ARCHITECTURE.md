@@ -4,7 +4,23 @@
 
 The frontend is a Next.js App Router application in `apps/web`. It owns browser presentation, feature composition, and future authenticated user flows. It must not contain route-solving algorithms or privileged service credentials.
 
-The optimizer is an independent FastAPI service in `services/optimizer`. It owns future request validation, optimization orchestration, and independent solution validation. In Task 00 it exposes only `GET /health`.
+The optimizer is an independent FastAPI service in `services/optimizer`. It owns API schemas, canonical input validation, deterministic calculation utilities, future optimization orchestration, and independent solution validation. It exposes `GET /health`; Task 01 adds no planning endpoint or solver.
+
+## Planning domain and source data
+
+`fixtures/up_rent_case.json` is the canonical source for the original assessment case. `app.domain.dataset` resolves this fixture relative to its own module location, so it does not depend on the process working directory. Pydantic models define `Vehicle`, `Machine`, `Location`, `TransportOrder`, `PlanningParameters`, and `PlanningDataset`.
+
+Dataset-level validation owns unique IDs and cross-record references. Record-level validation owns positive quantities/durations and finite coordinates. Canonical input is never mutated; future scenario simulation must work from a separately loaded dataset instance.
+
+`app.domain.distance` is a pure module. It rounds each Euclidean segment half-up to an integer number of tenths of a kilometre before any route sum. `app.domain.time` returns separate integer-second driving, pickup, delivery, and elapsed durations. The canonical 60 km/h speed makes one tenth of a kilometre exactly six seconds. The 540-minute rule is documented as driving time only.
+
+## Independent route validation
+
+`app.validation.models` defines immutable-by-convention input records: ordered actions remain nested beneath ordered stops and routes, preserving repeated visits and multiple actions at one location. It also defines structured violations, metrics, action-load snapshots, and validation results.
+
+`app.validation.engine.validate_plan` is a side-effect-free domain service. It never invokes FastAPI or OR-Tools, and it recomputes distance/time from locations rather than accepting client metrics. It validates depots, known identifiers, action location/order, pickup/delivery sequencing and vehicle affinity, load and simultaneous-machine limits, final-empty loads, driving limits, completeness, and missing routes.
+
+The canonical baseline builder is isolated in `app.validation.baseline`. It encodes only the requested non-optimized assignment strategy; the validation engine computes all resulting metrics independently.
 
 `supabase/` is a future integration boundary for PostgreSQL migrations, Row Level Security policies, storage, authentication, and realtime capabilities. No Supabase client, project, schema, or credentials are present.
 

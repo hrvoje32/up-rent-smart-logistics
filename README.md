@@ -1,11 +1,12 @@
 # UP RENT Smart Logistics Planner
 
-Task 00 establishes the local repository foundation for a future construction-machinery logistics planning platform. It deliberately includes no order management, optimization, map, authentication, database, AI, or GPS functionality.
+Tasks 00–02 establish the local repository foundation, canonical planning input, and an independent route validator for a future construction-machinery logistics platform. Route optimization, order management, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
 
 ## Architecture summary
 
 - `apps/web`: Next.js App Router frontend, React, TypeScript, Tailwind CSS, and a shadcn/ui-compatible component layout.
-- `services/optimizer`: independent FastAPI service with a health endpoint and reserved domain, solver, validation, and API boundaries.
+- `services/optimizer`: independent FastAPI service with a health endpoint, validated domain models, canonical dataset loader, pure distance/time utilities, and a solver-independent route validator.
+- `fixtures/up_rent_case.json`: canonical original assessment input; scenario work must load a separate instance rather than modify this source fixture.
 - `supabase`: reserved migration and test locations only; no Supabase project or database is connected.
 - `docs`: architecture, business rules, decisions, test plan, and AI governance.
 
@@ -49,8 +50,26 @@ pnpm build
 curl --fail http://127.0.0.1:8000/health
 ```
 
+The canonical dataset and its models can be loaded from any current working directory because the loader resolves the fixture path from its module location.
+
+## Dataset and calculation conventions
+
+`fixtures/up_rent_case.json` contains vehicles, machines, Cartesian locations, orders, and shared planning parameters. Pydantic validates identifier uniqueness, positive limits and durations, finite coordinates, and cross-record machine/location/depot references.
+
+Distances use Euclidean geometry. Every segment is rounded **half-up** to one decimal kilometre, stored as integer tenths of kilometres, then summed. For example, 8.5 km is stored as `85`. Route totals never round only once at the end.
+
+At the source-data speed of 60 km/h, one tenth of a kilometre takes six seconds. Driving seconds, pickup service seconds, delivery service seconds, and total elapsed seconds are calculated separately. The 540-minute maximum is a driving-time limit, not a total elapsed-working-time limit. Pickup at L0 and delivery at L0 are valid operations.
+
+## Independent route validation
+
+`app.validation` contains strongly typed routes (`TransportPlan`, `VehicleRoute`, `RouteStop`, and ordered `TransportAction` records) plus `validate_plan(dataset, plan)`. The validator has no OR-Tools, FastAPI, database, or external-service dependency. It recomputes all distance and timing metrics from ordered stops, tracks load after every action, and returns structured violations with stable codes such as `WEIGHT_CAPACITY_EXCEEDED`, `DELIVERY_BEFORE_PICKUP`, and `INVALID_DEPOT_RETURN`.
+
+Validation distinguishes `is_valid` (no business-rule violations) from `is_complete` (every order has one valid, same-vehicle pickup/delivery pair). Depot-only idle routes, repeated locations, intermediate depot visits, and explicit depot pickup/delivery actions are supported.
+
+`build_canonical_baseline_plan()` supplies an intentionally inefficient comparison plan: Truck A is idle and Truck B handles one order at a time, returning to L0 between orders. The validator derives—not hardcodes—its 477.2 km distance, 477.2 driving minutes, 400 service minutes, and 877.2 total elapsed minutes.
+
 ## Current limitations
 
-Only the repository foundation and health endpoint exist. The project has no connected database, authentication, route solver, document processing, maps, live tracking, AI integration, or deployment configuration.
+The project has no connected database, authentication, route solver, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. The validator verifies a proposal; it does not generate or optimize routes.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for the planned boundaries and documented original requirements.
