@@ -22,6 +22,14 @@ Dataset-level validation owns unique IDs and cross-record references. Record-lev
 
 The canonical baseline builder is isolated in `app.validation.baseline`. It encodes only the requested non-optimized assignment strategy; the validation engine computes all resulting metrics independently.
 
+## OR-Tools optimization
+
+`app.solver.engine` is a local domain service independent of FastAPI, Supabase, frontend code, OpenAI, and external maps. It builds a `RoutingIndexManager` and `RoutingModel` using one logical node for the start depot, one for every pickup action, one for every delivery action, and a distinct end-depot node. Logical action nodes are never merged merely because their physical location IDs match.
+
+Distance arc costs are Task 01 integer tenths of kilometres. Weight and machine dimensions apply positive pickup and negative delivery demand; start cumulative loads are zero and nonnegative capacity bounds are enforced. A per-vehicle driving-time dimension uses rounded arc distance and each vehicle's speed, without adding service duration to the 540-minute driving constraint. A constant positive visit-order dimension makes pickup strictly precede delivery even for zero-distance action pairs.
+
+The extracted route is converted back to the Task 02 `TransportPlan` format and independently validated. The public result contains the original solver status, elapsed search time, settings, plan, trusted validation metrics, diagnostics, and a programmatic baseline comparison. Search status alone is never enough to claim success.
+
 `supabase/` is a future integration boundary for PostgreSQL migrations, Row Level Security policies, storage, authentication, and realtime capabilities. No Supabase client, project, schema, or credentials are present.
 
 ## Responsibility boundaries

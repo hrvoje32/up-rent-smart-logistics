@@ -80,6 +80,14 @@ The validator requires exactly one pickup and delivery per order, in that order,
 
 The canonical reference baseline deliberately leaves Truck A idle and sends Truck B on one order at a time, returning to L0 between orders. It is a verification comparison only—not an optimized plan. The validator calculates 477.2 km, 477.2 minutes driving, 400 minutes service, and 877.2 minutes elapsed time for it.
 
+## Optimization interpretation
+
+The Task 03 engine minimizes only the combined rounded Euclidean route distance. It models each pickup and delivery as a separate action node, including N05's pickup at L0 and N04's delivery at L0. Pickup and delivery are assigned to the same truck and strictly ordered even when two action nodes share coordinates.
+
+Vehicle capacity applies to simultaneous load after every action: pickup adds machine weight/count and delivery removes it. Driving-time capacity is 32,400 seconds per vehicle and includes travel only. Loading/unloading remains visible in service and elapsed metrics, but does not become an unstated driving-limit constraint.
+
+A result is `FEASIBLE` only after the independent validator confirms every order is complete and all rules pass. A finite heuristic search may find a feasible plan but does not prove global optimality; a timeout without a solution is not proof of infeasibility.
+
 ## Planned additional functionality
 
 The future platform may add dispatcher dashboards, fleet and driver management, scenario simulation, real geographic maps, inspection workflows, consent-based GPS tracking, analytics, AI document extraction, AI explanations, and reporting. These items are not original routing constraints and are not implemented in Task 00.

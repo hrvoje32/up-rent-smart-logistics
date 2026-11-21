@@ -1,11 +1,11 @@
 # UP RENT Smart Logistics Planner
 
-Tasks 00–02 establish the local repository foundation, canonical planning input, and an independent route validator for a future construction-machinery logistics platform. Route optimization, order management, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
+Tasks 00–03 establish the local repository foundation, canonical planning input, independent validator, and OR-Tools pickup-and-delivery optimization engine. Product APIs, user workflows, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
 
 ## Architecture summary
 
 - `apps/web`: Next.js App Router frontend, React, TypeScript, Tailwind CSS, and a shadcn/ui-compatible component layout.
-- `services/optimizer`: independent FastAPI service with a health endpoint, validated domain models, canonical dataset loader, pure distance/time utilities, and a solver-independent route validator.
+- `services/optimizer`: independent FastAPI service with a health endpoint, validated domain models, canonical dataset loader, pure distance/time utilities, an independent route validator, and a local OR-Tools solver module.
 - `fixtures/up_rent_case.json`: canonical original assessment input; scenario work must load a separate instance rather than modify this source fixture.
 - `supabase`: reserved migration and test locations only; no Supabase project or database is connected.
 - `docs`: architecture, business rules, decisions, test plan, and AI governance.
@@ -68,8 +68,14 @@ Validation distinguishes `is_valid` (no business-rule violations) from `is_compl
 
 `build_canonical_baseline_plan()` supplies an intentionally inefficient comparison plan: Truck A is idle and Truck B handles one order at a time, returning to L0 between orders. The validator derives—not hardcodes—its 477.2 km distance, 477.2 driving minutes, 400 service minutes, and 877.2 total elapsed minutes.
 
+## OR-Tools optimization
+
+`app.solver.optimize_plan(dataset, settings)` creates separate logical nodes for every pickup and delivery action, including actions at the same physical location or at L0. It minimizes the combined Task 01 rounded-distance cost subject to same-vehicle pickup/delivery, strict visit ordering, weight and machine-count capacity dimensions, and travel-only driving-time limits.
+
+The solver returns an extracted `TransportPlan` that is always passed through the independent validator. Only a complete, independently valid result is labelled `FEASIBLE`; otherwise it is `INFEASIBLE`, `NO_SOLUTION_FOUND`, `VALIDATION_FAILED`, or `ERROR`. Default search uses `PARALLEL_CHEAPEST_INSERTION`, `GUIDED_LOCAL_SEARCH`, and a five-second limit. A feasible heuristic result is not a claim of global optimality.
+
 ## Current limitations
 
-The project has no connected database, authentication, route solver, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. The validator verifies a proposal; it does not generate or optimize routes.
+The project has no connected database, authentication, optimization API endpoint, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for the planned boundaries and documented original requirements.
