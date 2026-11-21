@@ -1,6 +1,6 @@
 # UP RENT Smart Logistics Planner
 
-Tasks 00–03 establish the local repository foundation, canonical planning input, independent validator, and OR-Tools pickup-and-delivery optimization engine. Product APIs, user workflows, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
+Tasks 00–04 establish the local repository foundation, canonical planning input, independent validator, OR-Tools engine, and a local FastAPI optimization contract. User workflows, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
 
 ## Architecture summary
 
@@ -36,7 +36,7 @@ pnpm dev:web
 services/optimizer/.venv/bin/uvicorn app.main:app --app-dir services/optimizer --reload
 ```
 
-The web app is served by Next.js, while the optimizer runs independently at `http://127.0.0.1:8000`. Its baseline health check is `GET /health`.
+The web app is served by Next.js, while the optimizer runs independently at `http://127.0.0.1:8000`. Bind the optimizer to `127.0.0.1` for local development. Its OpenAPI UI is available at `http://127.0.0.1:8000/docs`.
 
 ## Verification commands
 
@@ -74,8 +74,20 @@ Validation distinguishes `is_valid` (no business-rule violations) from `is_compl
 
 The solver returns an extracted `TransportPlan` that is always passed through the independent validator. Only a complete, independently valid result is labelled `FEASIBLE`; otherwise it is `INFEASIBLE`, `NO_SOLUTION_FOUND`, `VALIDATION_FAILED`, or `ERROR`. Default search uses `PARALLEL_CHEAPEST_INSERTION`, `GUIDED_LOCAL_SEARCH`, and a five-second limit. A feasible heuristic result is not a claim of global optimality.
 
+## Local optimization API
+
+- `GET /health` returns service liveness.
+- `GET /api/v1/demo-case` returns a freshly loaded canonical fixture; it does not write a database or mutate shared state.
+- `POST /api/v1/optimize` accepts `{ "dataset": PlanningDataset, "settings": ApiSolverSettings }` and returns the existing typed `OptimizationResult` contract.
+
+Result distances use `*_tenths_km` integer units (0.1 km); `*_kg` is kilograms; `machine_count` is simultaneous machines; `*_seconds` is seconds; and `distance_reduction_percentage` is a percentage. The response nests independent validation, ordered actions, load snapshots, route metrics, baseline comparison, and structured diagnostics.
+
+The local demo limits a request to 256 KiB, 20 vehicles, 100 locations, 100 orders, 10 solver seconds, and one concurrent in-process solve. Invalid input returns 422, oversize input 413, busy capacity 503, and sanitized unexpected failures 500. Business outcomes such as `INFEASIBLE` and `NO_SOLUTION_FOUND` remain structured 200 responses. This in-process guard is not a distributed rate limiter.
+
+No CORS policy is enabled and no authentication exists yet. Keep the service loopback-bound; do not expose it publicly before the planned authentication and deployment work.
+
 ## Current limitations
 
-The project has no connected database, authentication, optimization API endpoint, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
+The project has no connected database, authentication, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. The API is for controlled local demo use only. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for the planned boundaries and documented original requirements.

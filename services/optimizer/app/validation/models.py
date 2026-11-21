@@ -92,8 +92,10 @@ class ActionLoadSnapshot(DomainModel):
     action_type: ActionType
     stop_index: int
     action_index: int
-    load_kg: int = Field(ge=0)
-    machine_count: int = Field(ge=0)
+    load_kg: int = Field(ge=0, description="Current carried weight after the action, in kilograms.")
+    machine_count: int = Field(
+        ge=0, description="Current simultaneous machine count after the action."
+    )
 
 
 class RouteMetrics(DomainModel):
@@ -101,13 +103,19 @@ class RouteMetrics(DomainModel):
 
     vehicle_id: str
     route_index: int = Field(ge=0)
-    distance_tenths_km: int = Field(ge=0)
-    driving_time_seconds: int = Field(ge=0)
-    pickup_service_seconds: int = Field(ge=0)
-    delivery_service_seconds: int = Field(ge=0)
-    total_service_seconds: int = Field(ge=0)
-    total_elapsed_seconds: int = Field(ge=0)
-    completed_order_count: int = Field(ge=0)
+    distance_tenths_km: int = Field(ge=0, description="Route distance in 0.1 km units.")
+    driving_time_seconds: int = Field(ge=0, description="Travel-only driving duration in seconds.")
+    pickup_service_seconds: int = Field(ge=0, description="Pickup service duration in seconds.")
+    delivery_service_seconds: int = Field(ge=0, description="Delivery service duration in seconds.")
+    total_service_seconds: int = Field(
+        ge=0, description="Total pickup plus delivery service seconds."
+    )
+    total_elapsed_seconds: int = Field(
+        ge=0, description="Driving plus service duration in seconds."
+    )
+    completed_order_count: int = Field(
+        ge=0, description="Number of independently completed orders."
+    )
     is_valid: bool
 
 
@@ -121,10 +129,22 @@ class ValidationResult(DomainModel):
     unserved_order_ids: list[str]
     completed_order_counts: dict[str, int]
     route_metrics: list[RouteMetrics]
-    combined_distance_tenths_km: int = Field(ge=0)
-    combined_driving_time_seconds: int = Field(ge=0)
-    combined_pickup_service_seconds: int = Field(ge=0)
-    combined_delivery_service_seconds: int = Field(ge=0)
-    combined_total_service_seconds: int = Field(ge=0)
-    combined_total_elapsed_seconds: int = Field(ge=0)
+    combined_distance_tenths_km: int = Field(
+        ge=0, description="Combined route distance in 0.1 km units."
+    )
+    combined_driving_time_seconds: int = Field(
+        ge=0, description="Combined travel-only driving seconds."
+    )
+    combined_pickup_service_seconds: int = Field(
+        ge=0, description="Combined pickup service seconds."
+    )
+    combined_delivery_service_seconds: int = Field(
+        ge=0, description="Combined delivery service seconds."
+    )
+    combined_total_service_seconds: int = Field(
+        ge=0, description="Combined pickup plus delivery service seconds."
+    )
+    combined_total_elapsed_seconds: int = Field(
+        ge=0, description="Combined driving plus service seconds."
+    )
     load_snapshots: list[ActionLoadSnapshot]

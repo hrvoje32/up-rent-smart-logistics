@@ -88,6 +88,12 @@ Vehicle capacity applies to simultaneous load after every action: pickup adds ma
 
 A result is `FEASIBLE` only after the independent validator confirms every order is complete and all rules pass. A finite heuristic search may find a feasible plan but does not prove global optimality; a timeout without a solution is not proof of infeasibility.
 
+## API contract interpretation
+
+The local API accepts a complete planning dataset and bounded search settings; it does not infer, persist, or alter orders. Input validation applies the same vehicle, machine, location, order, depot, and planning-parameter rules as the domain model. The API returns exact integer distance units in tenths of kilometres and time units in seconds, rather than silently rounding display values.
+
+`INFEASIBLE`, `NO_SOLUTION_FOUND`, and `VALIDATION_FAILED` remain distinct business/solver outcomes. Malformed input is HTTP 422; excessive request bodies are HTTP 413; a busy bounded local solver is HTTP 503. No request metrics supplied by a client are trusted.
+
 ## Planned additional functionality
 
 The future platform may add dispatcher dashboards, fleet and driver management, scenario simulation, real geographic maps, inspection workflows, consent-based GPS tracking, analytics, AI document extraction, AI explanations, and reporting. These items are not original routing constraints and are not implemented in Task 00.

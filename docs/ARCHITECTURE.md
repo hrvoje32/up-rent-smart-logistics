@@ -30,6 +30,14 @@ Distance arc costs are Task 01 integer tenths of kilometres. Weight and machine 
 
 The extracted route is converted back to the Task 02 `TransportPlan` format and independently validated. The public result contains the original solver status, elapsed search time, settings, plan, trusted validation metrics, diagnostics, and a programmatic baseline comparison. Search status alone is never enough to claim success.
 
+## FastAPI integration contract
+
+`app.api.optimization` exposes the versioned local API without reimplementing any solver or validator logic. `GET /api/v1/demo-case` uses the path-independent canonical fixture loader. `POST /api/v1/optimize` accepts the existing `PlanningDataset` plus a constrained subclass of `SolverSettings`, then calls `optimize_plan` once.
+
+The optimization path operation is synchronous, so FastAPI runs CPU-bound OR-Tools work in its standard sync worker context rather than blocking an async handler. A process-local `BoundedSemaphore(1)` rejects concurrent work with 503. This is deliberately simple local-demo protection, not distributed scheduling or rate limiting.
+
+Request validation rejects unknown fields and enforces 256 KiB payloads, 20 vehicles, 100 locations, 100 orders, and a ten-second maximum search. An ASGI body-size middleware returns 413 before parsing excessive optimization payloads. The API returns the existing `OptimizationResult`, including exact integer 0.1-km and second units, independently recomputed validation data, and structured diagnostics.
+
 `supabase/` is a future integration boundary for PostgreSQL migrations, Row Level Security policies, storage, authentication, and realtime capabilities. No Supabase client, project, schema, or credentials are present.
 
 ## Responsibility boundaries

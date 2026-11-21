@@ -32,21 +32,41 @@ class SolverSettings(DomainModel):
 class BaselineComparison(DomainModel):
     """Distance-only comparison with the documented non-optimized reference plan."""
 
-    baseline_distance_tenths_km: int = Field(ge=0)
-    optimized_distance_tenths_km: int = Field(ge=0)
-    distance_reduction_tenths_km: int
-    distance_reduction_percentage: float
+    baseline_distance_tenths_km: int = Field(ge=0, description="Baseline distance in 0.1 km units.")
+    optimized_distance_tenths_km: int = Field(
+        ge=0, description="Independently validated optimized distance in 0.1 km units."
+    )
+    distance_reduction_tenths_km: int = Field(
+        description="Baseline minus optimized distance in 0.1 km units."
+    )
+    distance_reduction_percentage: float = Field(
+        description="Distance reduction relative to baseline, as a percentage."
+    )
 
 
 class OptimizationResult(DomainModel):
     """Solver outcome, independently recomputed plan result, and diagnostics."""
 
-    status: OptimizationStatus
-    solver_status: int | None = None
-    solver_duration_seconds: float = Field(ge=0)
-    settings: SolverSettings
-    plan: TransportPlan | None = None
-    validation_result: ValidationResult | None = None
-    violations: list[ValidationViolation] = Field(default_factory=list)
-    baseline_comparison: BaselineComparison | None = None
-    diagnostic_message: str | None = None
+    status: OptimizationStatus = Field(description="Public optimization outcome status.")
+    solver_status: int | None = Field(
+        default=None, description="Original OR-Tools routing status code."
+    )
+    solver_duration_seconds: float = Field(
+        ge=0, description="Solver execution duration in seconds."
+    )
+    settings: SolverSettings = Field(description="Effective bounded search settings.")
+    plan: TransportPlan | None = Field(
+        default=None, description="Extracted ordered routes when available."
+    )
+    validation_result: ValidationResult | None = Field(
+        default=None, description="Independent recomputation of route validity and metrics."
+    )
+    violations: list[ValidationViolation] = Field(
+        default_factory=list, description="Structured solver or preflight diagnostics."
+    )
+    baseline_comparison: BaselineComparison | None = Field(
+        default=None, description="Programmatic comparison to the canonical baseline."
+    )
+    diagnostic_message: str | None = Field(
+        default=None, description="Sanitized human-readable status diagnostic."
+    )
