@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ScenarioManager } from "@/features/admin/scenario-manager";
 import { OrderManagement } from "@/features/admin/order-management";
 import { VehicleManagement } from "@/features/admin/vehicle-management";
-import { WorkspacePersistence } from "@/features/admin/workspace-persistence";
 import { createBusinessWorkspace, loadBusinessWorkspace, type BusinessWorkspace, type OptimizationRun } from "@/lib/business-workspace";
 import { distance, duration, plural, weight } from "@/lib/format";
 import { ORIGINAL_SCENARIO_ID, createCustomScenario, createOriginalScenario, loadCustomScenarios, loadSavedPlans, saveCustomScenarios, saveSavedPlans, type PlanningScenario, type SavedRouteSnapshot } from "@/lib/planning-scenarios";
@@ -28,9 +27,9 @@ const navigation: Array<[ManagementSection | "optimizer", string, string]> = [
 const orderStatusLabel: Record<string, string> = { PENDING: "Na čekanju", PLANNED: "Planiran", IN_PROGRESS: "U tijeku", COMPLETED: "Izvršen", CANCELLED: "Otkazan" };
 
 export function ManagementPage({ dataset, section }: { dataset: DemoDataset; section: ManagementSection }) {
-  if (section === "vehicles") return <><WorkspacePersistence dataset={dataset} /><VehicleManagement dataset={dataset} /></>;
-  if (section === "orders") return <><WorkspacePersistence dataset={dataset} /><OrderManagement dataset={dataset} /></>;
-  if (section === "dashboard") return <><WorkspacePersistence dataset={dataset} /><WorkspaceDashboard dataset={dataset} /></>;
+  if (section === "vehicles") return <VehicleManagement dataset={dataset} />;
+  if (section === "orders") return <OrderManagement dataset={dataset} />;
+  if (section === "dashboard") return <WorkspaceDashboard dataset={dataset} />;
   return <LegacyManagementPage dataset={dataset} section={section} />;
 }
 
