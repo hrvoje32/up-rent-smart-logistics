@@ -29,7 +29,12 @@ export function WorkspacePersistence({ dataset }: { dataset: DemoDataset }) {
     const response = await fetch("/api/workspace", { cache: "no-store" });
     if (!response.ok) { setMessage(response.status === 401 ? "Prijavite se za sigurnu pohranu." : "Sigurna pohrana trenutačno nije dostupna."); return null; }
     const payload = await response.json() as CloudWorkspace;
-    versionRef.current = payload.version; setCloud(payload); return payload;
+    versionRef.current = payload.version;
+    setCloud(payload);
+    setMessage(payload.workspace
+      ? "Cloud radni prostor je dostupan. Po potrebi ga sigurno sjedinite s lokalnim podacima."
+      : "Cloud je spreman. Potvrdite uvoz lokalnog radnog prostora prije prve optimizacije.");
+    return payload;
   }
 
   async function saveCloud(workspace: BusinessWorkspace, expectedVersion: number): Promise<boolean> {

@@ -22,7 +22,7 @@ vi.mock("@/lib/optimizer-rate-limit", () => ({
 import { POST } from "./route";
 import { optimizeDataset } from "@/lib/optimizer-api";
 import { AuthenticationError, requireAuthenticatedUser } from "@/lib/auth";
-import { requireWorkspaceAccess } from "@/lib/workspace-access";
+import { WorkspaceAccessError, requireWorkspaceAccess } from "@/lib/workspace-access";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -38,6 +38,17 @@ describe("POST /api/optimizer", () => {
     vi.stubEnv("NODE_ENV", "test");
     const response = await POST(new Request("http://localhost:3000/api/optimizer", { method: "POST", headers: { origin: "https://untrusted.example", host: "localhost:3000" } }));
     expect(response.status).toBe(403);
+  });
+
+  it("explains how an authenticated user creates their protected workspace", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.mocked(requireAuthenticatedUser).mockResolvedValue({ id: "user-1", email: "demo@example.test" });
+    vi.mocked(requireWorkspaceAccess).mockRejectedValue(new WorkspaceAccessError("Workspace is absent."));
+
+    const response = await POST(new Request("http://localhost:3000/api/optimizer", { method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000" } }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("Potvrdi uvoz u cloud") });
   });
 
   it("forwards a validated custom dataset only in the local environment", async () => {
