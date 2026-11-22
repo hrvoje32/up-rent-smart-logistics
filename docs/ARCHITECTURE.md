@@ -51,7 +51,15 @@ Request validation rejects unknown fields and enforces 256 KiB payloads, 20 vehi
 
 ## Frontend/backend interaction
 
-A future server-side or authenticated frontend API client will call versioned FastAPI endpoints over HTTPS. Requests and responses will use explicit schemas. The optimizer will return validated results; frontend display code must not be treated as solver validation.
+The local `/admin/optimizer` page obtains `GET /api/v1/demo-case` through a server-only Next.js module marked with `server-only`. `OPTIMIZER_API_URL` is server-only and must never use a `NEXT_PUBLIC_` prefix. The browser calls only the controlled same-origin `POST /api/optimizer` route, which discards client-supplied datasets/settings and constructs the fixed canonical request on the server.
+
+That Next route denies requests in production builds and requires an exact `Origin`/`Host` match in the local demo. This is intentionally fail-closed until a later authentication and authorization design exists. The frontend has a small runtime parser for the fields it renders; FastAPI OpenAPI remains the source-of-truth integration schema. The optimizer returns validated results; frontend display code must not be treated as solver validation.
+
+`apps/web/src/lib/route-timeline.ts` is a pure presentation projection, not a solver. It uses the returned ordered route/actions and snapshots with the immutable dataset's individually rounded Cartesian segments, vehicle speed, and service parameters to produce simulated arrival, service, and departure times. It neither mutates the optimization result nor submits calculated times to the backend. A timeline is compared to `RouteMetrics.total_elapsed_seconds` so any discrepancy remains visible.
+
+`apps/web/src/lib/road-distance-estimate.ts` is a separate pure presentation calculation. It applies an integer circuity scale (100–180, in 5-point increments) to a trusted total in tenths of a kilometre and uses a single integer half-up conversion back to tenths. It never feeds estimated values into the solver, validator, official timeline, or FastAPI contract. Its assumed 60 km/h driving time and 9-hour scenario warning are explanatory only, not driver-rule compliance logic.
+
+`VehicleTransportReport` is a reusable UI projection placed after the existing vehicle timeline. Its start/finish date and time are calculated from that timeline plus a user-selected simulated date, preserving seconds and midnight crossings. It exposes no driver assignment, break rule, or compliance decision: breaks are explicitly shown as unscheduled. Print styling is presentation-only and excludes app navigation/controls while preserving critical report content.
 
 ## Future data integration
 
@@ -60,3 +68,8 @@ Supabase PostgreSQL will store orders, fleet records, assignments, inspections, 
 ## Future identity and authorization
 
 Supabase Auth will provide identity. Authorization will be enforced with roles and Row Level Security, with separate dispatcher/admin and driver scopes. The frontend will not rely solely on hidden controls for authorization; protected API operations must validate identity and authorization server-side.
+# Scenario persistence and CRUD
+
+`apps/web/src/lib/planning-scenarios.ts` owns the versioned browser-local scenario model and validation. It enriches optimizer records with display-only fields (`display_name`, activity, depot marker, optional machine type, and order notes), then removes those fields before creating the bounded `DemoDataset` forwarded to FastAPI. The canonical scenario is reconstructed from the server-loaded dataset on each application load and is never persisted as editable data.
+
+`ScenarioManager` provides local CRUD, import/export, reset, and named route snapshots. Entity deletion checks references first; saved route snapshots retain scenario ID/revision, solver output, and timestamp. The Next route remains same-origin and rejects every optimization request in production.

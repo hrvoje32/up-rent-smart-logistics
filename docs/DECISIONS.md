@@ -26,7 +26,13 @@ The sole objective is total rounded Cartesian distance in integer tenths of kilo
 
 The Task 04 API uses synchronous FastAPI path operations because OR-Tools solving is CPU-bound and blocking. It invokes the existing optimizer and returns its existing typed result rather than recreating solver schemas. A local process-wide semaphore permits one concurrent solve, and a strict request envelope limits body size, entity counts, and solver duration.
 
-This is not public-production security: authentication, distributed rate limiting, background jobs, and shared workload coordination remain future work. The intended local command binds Uvicorn to loopback. OpenAPI supplies the integration contract for a future server-to-server Next.js client; no duplicate frontend type contract is maintained.
+This is not public-production security: authentication, distributed rate limiting, background jobs, and shared workload coordination remain future work. The intended local command binds Uvicorn to loopback.
+
+## ADR-007: Server-mediated local dashboard integration
+
+The Task 05 dashboard keeps `OPTIMIZER_API_URL` in a server-only Next.js module and makes the browser call only `POST /api/optimizer`. The Next route reads the canonical dataset itself and uses fixed, bounded settings, preventing browser callers from choosing an upstream URL, inserting a dataset, or expanding solver limits. It is denied in production builds and enforces local same-origin requests.
+
+A narrow TypeScript runtime parser validates FastAPI responses before presentation. It exists to fail safely at the JavaScript boundary; it does not supersede FastAPI's OpenAPI schema or the backend's independent validation result. Authentication and CSRF policy are still required before any production enablement.
 
 ## Python compatibility finding
 

@@ -34,6 +34,8 @@ class _RouteState:
     distance_tenths_km: int = 0
     pickup_count: int = 0
     delivery_count: int = 0
+    elapsed_seconds: int = 0
+    waiting_time_seconds: int = 0
 
 
 @dataclass
@@ -49,7 +51,9 @@ class _OrderFacts:
     delivery_after_pickup: bool = True
 
 
-def validate_plan(dataset: PlanningDataset, plan: TransportPlan) -> ValidationResult:
+def validate_plan(
+    dataset: PlanningDataset, plan: TransportPlan, *, require_all_vehicles: bool = False
+) -> ValidationResult:
     """Validate a plan without mutating either input or relying on a solver.
 
     Metrics are recomputed from ordered stops and explicit actions. Invalid routes receive
@@ -137,6 +141,16 @@ def validate_plan(dataset: PlanningDataset, plan: TransportPlan) -> ValidationRe
         violations=violations,
     )
     completed_order_counts = _completed_order_counts(dataset, completed_order_ids, order_facts)
+    if require_all_vehicles:
+        for vehicle_id, completed_count in completed_order_counts.items():
+            if completed_count == 0:
+                violations.append(
+                    _violation(
+                        ValidationErrorCode.REQUIRED_VEHICLE_UNUSED,
+                        f"vehicle '{vehicle_id}' was selected but did not serve an order",
+                        vehicle_id=vehicle_id,
+                    )
+                )
     _update_completed_counts(route_metrics, completed_order_counts)
 
     per_vehicle_validity = _per_vehicle_validity(dataset, violations)
@@ -161,6 +175,9 @@ def validate_plan(dataset: PlanningDataset, plan: TransportPlan) -> ValidationRe
         ),
         combined_delivery_service_seconds=sum(
             metric.delivery_service_seconds for metric in route_metrics
+        ),
+        combined_waiting_time_seconds=sum(
+            metric.waiting_time_seconds for metric in route_metrics
         ),
         combined_total_service_seconds=sum(
             metric.total_service_seconds for metric in route_metrics
@@ -231,12 +248,26 @@ def _validate_route(
             )
             previous_location_id = None
         elif previous_location_id is not None:
-            state.distance_tenths_km += distance_matrix[previous_location_id][stop.location_id]
+            leg_distance = distance_matrix[previous_location_id][stop.location_id]
+            state.distance_tenths_km += leg_distance
+            state.elapsed_seconds += driving_time_seconds(leg_distance, vehicle)
 
         if location_is_known:
             previous_location_id = stop.location_id
 
         for action_index, action in enumerate(stop.actions):
+            order = orders_by_id.get(action.order_id)
+            if order is not None:
+                _apply_time_constraint(
+                    order=order,
+                    action=action,
+                    vehicle=vehicle,
+                    stop_index=stop_index,
+                    action_index=action_index,
+                    state=state,
+                    parameters=dataset.parameters,
+                    violations=violations,
+                )
             _apply_action(
                 action=action,
                 location_id=stop.location_id,
@@ -339,6 +370,73 @@ def _apply_action(
         machine_weight_by_id=machine_weight_by_id,
         violations=violations,
     )
+
+
+def _apply_time_constraint(
+    *,
+    order: TransportOrder,
+    action: TransportAction,
+    vehicle: Vehicle,
+    stop_index: int,
+    action_index: int,
+    state: _RouteState,
+    parameters: PlanningParameters,
+    violations: list[ValidationViolation],
+) -> None:
+    """Apply optional appointment windows to one ordered operation.
+
+    Cumul values represent service start. Waiting is legitimate and contributes only to
+    elapsed time; the existing driving limit remains travel-only.
+    """
+    if action.action_type is ActionType.PICKUP:
+        earliest = order.earliest_pickup_at
+        latest_completion = order.latest_pickup_at
+        service_seconds = parameters.pickup_service_seconds
+        code = ValidationErrorCode.PICKUP_TIME_WINDOW_VIOLATION
+    else:
+        earliest = order.earliest_delivery_at
+        latest_completion = order.delivery_deadline_at
+        service_seconds = parameters.delivery_service_seconds
+        code = ValidationErrorCode.DELIVERY_TIME_WINDOW_VIOLATION
+
+    if earliest is None and latest_completion is None:
+        state.elapsed_seconds += service_seconds
+        return
+    if parameters.planning_start_at is None:
+        violations.append(
+            _violation(
+                ValidationErrorCode.UNSUPPORTED_TIME_CONSTRAINT,
+                "time-constrained order requires planning_start_at with a timezone offset",
+                vehicle_id=vehicle.id,
+                order_id=order.id,
+                stop_index=stop_index,
+                action_index=action_index,
+            )
+        )
+        state.elapsed_seconds += service_seconds
+        return
+
+    planning_start = parameters.planning_start_at
+    if earliest is not None:
+        earliest_offset = int((earliest - planning_start).total_seconds())
+        if state.elapsed_seconds < earliest_offset:
+            state.waiting_time_seconds += earliest_offset - state.elapsed_seconds
+            state.elapsed_seconds = earliest_offset
+    completion_seconds = state.elapsed_seconds + service_seconds
+    if latest_completion is not None:
+        latest_offset = int((latest_completion - planning_start).total_seconds())
+        if completion_seconds > latest_offset:
+            violations.append(
+                _violation(
+                    code,
+                    f"order '{order.id}' service finishes after its permitted time window",
+                    vehicle_id=vehicle.id,
+                    order_id=order.id,
+                    stop_index=stop_index,
+                    action_index=action_index,
+                )
+            )
+    state.elapsed_seconds = completion_seconds
 
 
 def _apply_pickup(
@@ -570,8 +668,9 @@ def _build_metrics(
         driving_time_seconds=driving_seconds,
         pickup_service_seconds=pickup_seconds,
         delivery_service_seconds=delivery_seconds,
+        waiting_time_seconds=state.waiting_time_seconds,
         total_service_seconds=service_seconds,
-        total_elapsed_seconds=driving_seconds + service_seconds,
+        total_elapsed_seconds=driving_seconds + service_seconds + state.waiting_time_seconds,
         completed_order_count=0,
         is_valid=is_valid,
     )

@@ -68,6 +68,10 @@ class ValidationErrorCode(str, Enum):
     WRONG_DELIVERY_LOCATION = "WRONG_DELIVERY_LOCATION"
     UNDELIVERED_LOAD = "UNDELIVERED_LOAD"
     DRIVING_TIME_EXCEEDED = "DRIVING_TIME_EXCEEDED"
+    PICKUP_TIME_WINDOW_VIOLATION = "PICKUP_TIME_WINDOW_VIOLATION"
+    DELIVERY_TIME_WINDOW_VIOLATION = "DELIVERY_TIME_WINDOW_VIOLATION"
+    UNSUPPORTED_TIME_CONSTRAINT = "UNSUPPORTED_TIME_CONSTRAINT"
+    REQUIRED_VEHICLE_UNUSED = "REQUIRED_VEHICLE_UNUSED"
     EMPTY_ROUTE = "EMPTY_ROUTE"
     UNSERVICEABLE_ORDER = "UNSERVICEABLE_ORDER"
     SOLVER_NO_SOLUTION = "SOLVER_NO_SOLUTION"
@@ -107,6 +111,9 @@ class RouteMetrics(DomainModel):
     driving_time_seconds: int = Field(ge=0, description="Travel-only driving duration in seconds.")
     pickup_service_seconds: int = Field(ge=0, description="Pickup service duration in seconds.")
     delivery_service_seconds: int = Field(ge=0, description="Delivery service duration in seconds.")
+    waiting_time_seconds: int = Field(
+        ge=0, description="Waiting imposed by supported appointment windows."
+    )
     total_service_seconds: int = Field(
         ge=0, description="Total pickup plus delivery service seconds."
     )
@@ -141,6 +148,7 @@ class ValidationResult(DomainModel):
     combined_delivery_service_seconds: int = Field(
         ge=0, description="Combined delivery service seconds."
     )
+    combined_waiting_time_seconds: int = Field(ge=0)
     combined_total_service_seconds: int = Field(
         ge=0, description="Combined pickup plus delivery service seconds."
     )

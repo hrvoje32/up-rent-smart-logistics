@@ -20,6 +20,14 @@ class OptimizationStatus(str, Enum):
     ERROR = "ERROR"
 
 
+class OptimizationStrategy(str, Enum):
+    """Real routing objectives exposed by the local planning application."""
+
+    FASTEST_DELIVERY = "FASTEST_DELIVERY"
+    BALANCED = "BALANCED"
+    DISTANCE_SAVINGS = "DISTANCE_SAVINGS"
+
+
 class SolverSettings(DomainModel):
     """Bounded routing-search settings exposed to callers."""
 
@@ -27,6 +35,8 @@ class SolverSettings(DomainModel):
     first_solution_strategy: str = "PARALLEL_CHEAPEST_INSERTION"
     local_search_metaheuristic: str = "GUIDED_LOCAL_SEARCH"
     random_seed: int | None = None
+    optimization_strategy: OptimizationStrategy = OptimizationStrategy.DISTANCE_SAVINGS
+    require_all_selected_vehicles: bool = False
 
 
 class BaselineComparison(DomainModel):

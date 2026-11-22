@@ -12,7 +12,8 @@ Task 02 verifies the rendering/liveness baseline plus canonical data loading, de
 - **Route-validator tests:** pytest covers depot rules, action ordering, pickup/delivery pairing, same-vehicle handling, capacity/load snapshots, repeated stops, partial plans, deterministic results, and the canonical non-optimized baseline.
 - **Optimizer tests:** pytest covers complete OR-Tools extraction, strict same-coordinate pickup/delivery ordering, capacity/driving limits, depot action nodes, immutable source data, programmatic baseline comparison, and infeasible overweight orders.
 - **API integration tests:** FastAPI TestClient verifies the real canonical solve, OpenAPI contract, request validation, oversized bodies, bounded local concurrency, sanitized failures, and immutable demo fixture behavior without network or database services.
-- **Integration tests:** later tests will exercise the typed frontend-to-optimizer contract and isolated database integrations.
+- **Dashboard/client tests:** Vitest checks canonical dataset presentation, optimization result rendering, backend errors, and idle vehicle representation without claiming a fabricated assignment.
+- **Next boundary tests:** Vitest checks that optimization fails closed in production and rejects a cross-origin request; the browser cannot provide arbitrary FastAPI targets, datasets, or solver settings.
 - **Solver tests:** later tests will cover capacity, pickup-before-delivery, same-vehicle, daily-duration, depot-return, unserviceable-order, objective, and independent-validator cases.
 - **Security tests:** later tests will verify authentication, authorization, RLS policies, input validation, secret handling, and unsafe file/document rejection.
 - **End-to-end tests:** later browser tests will cover dispatcher and driver flows against controlled local test data.
@@ -21,7 +22,14 @@ Task 02 verifies the rendering/liveness baseline plus canonical data loading, de
 
 | Test | Tool | Expected result |
 | --- | --- | --- |
-| Web foundation render | Vitest + Testing Library | Planner title and foundation message render |
+| Web foundation render | Vitest + Testing Library | Planner title and local optimizer link render |
+| Local optimizer dashboard | Vitest + Testing Library | Canonical data, validated route actions/load snapshots, baseline summary, idle vehicle, and service error render |
+| Vehicle metrics regression | Vitest + Testing Library | Either truck may be idle, both remain visible, zero metrics render as values, and each route/combined distance and time field is shown |
+| Duration formatting | Vitest | Zero values and exact hour/minute/second durations never round away seconds |
+| Simulated route timeline | Vitest | Depot operations, repeated/multi-action stops, sequential service, rounded driving time, final completion, cross-midnight display, 10 pickups/10 deliveries, idle routes, and immutable source results are covered |
+| Estimated road-distance simulation | Vitest + Testing Library | Integer factor bounds, one-step half-up rounding, reference totals/times, unchanged service, zero idle metrics, scenario overage warning, responsive comparison controls, and no additional optimizer request on adjustment |
+| Final vehicle transport report | Vitest + Testing Library | Active and idle reports, simulated date/time finish projection, route duration facts, capacity/load/order totals, unscheduled breaks, optional distance labels, print control, and preserved diagnostics render from the existing contract |
+| Next optimization boundary | Vitest | Production and cross-origin requests return 403 before invoking FastAPI |
 | Optimizer health | pytest + FastAPI TestClient | `GET /health` returns HTTP 200 and structured success payload |
 | Canonical dataset and model validation | pytest + Pydantic | Original values load; invalid IDs, references, quantities, coordinates, and durations fail clearly |
 | Distance engine | pytest | Symmetric matrix, zero diagonal, half-up segment rounding, and rounded-segment route totals |
@@ -31,3 +39,6 @@ Task 02 verifies the rendering/liveness baseline plus canonical data loading, de
 | FastAPI optimization API | pytest + TestClient | Typed demo/optimize contracts, safe limits, and structured status handling |
 
 CI runs dependency installation, frontend type checking/linting/tests/build, plus Python Ruff and pytest.
+# Task 05D scenario coverage
+
+Scenario unit coverage verifies canonical immutability, custom scenario updates, vehicle/location/machine-type/machine/order references, protected deletion, inactive vehicle filtering, negative coordinates, local-storage restoration and corrupt-data handling, versioned import/export, and saved-route revision staleness. Route-handler coverage verifies that production remains fail-closed and that a validated custom dataset is only forwarded in the local environment.

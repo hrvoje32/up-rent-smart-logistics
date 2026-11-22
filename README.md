@@ -1,6 +1,6 @@
 # UP RENT Smart Logistics Planner
 
-Tasks 00–04 establish the local repository foundation, canonical planning input, independent validator, OR-Tools engine, and a local FastAPI optimization contract. User workflows, maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
+Tasks 00–05 establish the local repository foundation, canonical planning input, independent validator, OR-Tools engine, local FastAPI contract, and a local dispatcher dashboard. Maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
 
 ## Architecture summary
 
@@ -36,7 +36,7 @@ pnpm dev:web
 services/optimizer/.venv/bin/uvicorn app.main:app --app-dir services/optimizer --reload
 ```
 
-The web app is served by Next.js, while the optimizer runs independently at `http://127.0.0.1:8000`. Bind the optimizer to `127.0.0.1` for local development. Its OpenAPI UI is available at `http://127.0.0.1:8000/docs`.
+Set `OPTIMIZER_API_URL=http://127.0.0.1:8000` in `apps/web/.env.local` (see `apps/web/.env.example`), then open `http://localhost:3000/admin/optimizer`. The web app is served by Next.js, while the optimizer runs independently at `http://127.0.0.1:8000`. Bind the optimizer to `127.0.0.1` for local development. Its OpenAPI UI is available at `http://127.0.0.1:8000/docs`.
 
 ## Verification commands
 
@@ -86,8 +86,33 @@ The local demo limits a request to 256 KiB, 20 vehicles, 100 locations, 100 orde
 
 No CORS policy is enabled and no authentication exists yet. Keep the service loopback-bound; do not expose it publicly before the planned authentication and deployment work.
 
+## Local optimizer dashboard
+
+`/admin/optimizer` loads its canonical dataset server-side from `GET /api/v1/demo-case`. The browser never receives `OPTIMIZER_API_URL` and never calls FastAPI directly. Its only interactive request is same-origin `POST /api/optimizer`; that route obtains a fresh canonical dataset server-side, submits a bounded fixed solve to FastAPI, and returns the result.
+
+The route is deliberately disabled when `NODE_ENV=production` and rejects a missing or mismatched `Origin`/`Host`. It is a local controlled-demo safeguard, not authentication. The frontend's lightweight runtime contract checks FastAPI payloads at the boundary; FastAPI's OpenAPI document remains the authoritative schema. Do not publish or proxy this dashboard until a later task adds real identity, authorization, CSRF design, and deployment controls.
+
+The result view always renders both trucks, including a valid idle truck. It shows trusted per-truck route distance, completed orders, driving time, pickup/loading service, delivery/unloading service, combined service, and total elapsed time. The combined summary makes the combined distance, each truck's distance, baseline, reduction, and aggregate time breakdown visible before route detail. Durations preserve seconds; combined elapsed time is explicitly a sum of truck durations, not a parallel-operation wall-clock estimate.
+
+Each result card also includes a chronological **SIMULATED PLANNED TIMES** timeline. Its configurable local start time defaults to `08:00`; it derives each rounded segment's travel time and each ordered 20-minute pickup/delivery operation from the validated route returned by FastAPI. It is not GPS, traffic, shift, or actual-driver telemetry. The card labels cross-midnight times, preserves repeated locations and multiple actions at one stop, and compares its derived duration to the API's trusted elapsed metric.
+
+The optional **Distance Analysis** disclosure compares the authoritative Euclidean totals with an *Estimated road distance (simulation)*. It applies a user-selected integer circuity scale from 1.00× to 1.80× in 0.05 steps, rounds only the validated route total half-up to 0.1 km, and assumes 60 km/h for estimated driving. It does not call another solver, alter route order/timeline, or represent actual roads, traffic, GPS, or compliance. A scenario warning appears if its estimated driving time exceeds nine hours.
+
+Every route card finishes with a print-friendly **Final transport report**. It reuses the validated metrics and simulated timeline to report capacity, active/idle state, simulation date/time and depot facts, time and distance breakdowns, operations, loads, validation, unserved-order diagnostics, and explicitly unscheduled breaks. The global print action hides navigation and controls while retaining critical tables and report content.
+
 ## Current limitations
 
-The project has no connected database, authentication, document processing, maps, live tracking, AI integration, frontend planning screens, or deployment configuration. The API is for controlled local demo use only. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
+The project has no connected database, authentication, document processing, maps, live tracking, AI integration, or deployment configuration. The API and dashboard are for controlled local demo use only. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for the planned boundaries and documented original requirements.
+# Editable planning scenarios (Task 05D)
+
+The optimizer dashboard now includes browser-local planning scenarios. **Original assessment** always reloads from the immutable `fixtures/up_rent_case.json` source exposed by the local API and is read-only. Custom scenarios are separate browser-local copies with CRUD for vehicles, locations, machine types, machines, and transport orders.
+
+Custom scenarios and named route snapshots use versioned `localStorage` records. They are not shared across browsers, devices, or users; clearing browser site data removes them. Import/export is versioned JSON and validates references before accepting a new custom scenario. Saved routes retain their source scenario revision and display as older when that scenario has changed.
+
+Custom optimization is accepted only by the same-origin Next.js route in local development. Production remains fail-closed. The original solver objective, canonical fixture, Euclidean calculations, and route validation are unchanged.
+
+## Local optimization history
+
+Every completed local optimization request is stored as an immutable browser-local run in the business workspace. A run preserves its timestamp, plan name, selected vehicles and orders, strategy, required-vehicle setting, exact submitted dataset, and returned validation/result metrics. The optimizer page presents these records in an expandable **Povijest optimizacija** section; a historical selection can be copied into a separate editable draft or safely deleted without changing any other run. The dashboard reads the same workspace and shows only the real latest-run metrics. As with all workspace data, history is local to the current browser and is removed when site data is cleared.

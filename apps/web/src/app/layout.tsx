@@ -4,12 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "UP RENT Smart Logistics Planner",
-  description: "Foundation for a future construction machinery logistics planner.",
+  description: "Planer logistike građevinskih strojeva.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="hr">
       <body>{children}</body>
     </html>
   );

@@ -6,6 +6,7 @@ All weights are kilograms, coordinates are Cartesian kilometres, and durations a
 from __future__ import annotations
 
 import math
+from datetime import datetime
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -65,6 +66,35 @@ class TransportOrder(DomainModel):
     machine_id: str = Field(min_length=1)
     pickup_location_id: str = Field(min_length=1)
     delivery_location_id: str = Field(min_length=1)
+    earliest_pickup_at: datetime | None = None
+    latest_pickup_at: datetime | None = None
+    earliest_delivery_at: datetime | None = None
+    delivery_deadline_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_time_windows(self) -> Self:
+        """Require explicit, timezone-aware and logically ordered optional constraints."""
+        values = (
+            self.earliest_pickup_at,
+            self.latest_pickup_at,
+            self.earliest_delivery_at,
+            self.delivery_deadline_at,
+        )
+        if any(value is not None and value.tzinfo is None for value in values):
+            raise ValueError("order time constraints must include a timezone offset")
+        if (
+            self.earliest_pickup_at is not None
+            and self.latest_pickup_at is not None
+            and self.earliest_pickup_at > self.latest_pickup_at
+        ):
+            raise ValueError("earliest pickup must not be after latest pickup")
+        if (
+            self.earliest_delivery_at is not None
+            and self.delivery_deadline_at is not None
+            and self.earliest_delivery_at > self.delivery_deadline_at
+        ):
+            raise ValueError("earliest delivery must not be after delivery deadline")
+        return self
 
 
 class PlanningParameters(DomainModel):
@@ -78,6 +108,14 @@ class PlanningParameters(DomainModel):
     max_driving_minutes: int = Field(gt=0)
     pickup_service_minutes: int = Field(gt=0)
     delivery_service_minutes: int = Field(gt=0)
+    planning_start_at: datetime | None = None
+
+    @field_validator("planning_start_at")
+    @classmethod
+    def validate_planning_start(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("planning_start_at must include a timezone offset")
+        return value
 
     @property
     def max_driving_seconds(self) -> int:

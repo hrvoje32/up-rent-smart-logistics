@@ -1,11 +1,14 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main className="foundation-page">
       <p className="eyebrow">UP RENT</p>
-      <h1>Smart Logistics Planner</h1>
+      <h1>Pametni planer logistike</h1>
       <p>
-        Repository foundation is ready. Business functionality will be introduced incrementally in later tasks.
+        Lokalna nadzorna ploča spremna je za kanonski demonstracijski skup podataka.
       </p>
+      <Link href="/admin/dashboard">Otvori nadzornu ploču</Link>
     </main>
   );
 }
