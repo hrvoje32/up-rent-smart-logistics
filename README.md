@@ -1,12 +1,10 @@
 # UP RENT Smart Logistics Planner
 
-Tasks 00–05 establish the local repository foundation, canonical planning input, independent validator, OR-Tools engine, local FastAPI contract, and a local dispatcher dashboard. Maps, authentication, database integration, AI, and GPS functionality are deliberately not implemented.
 
 ## Architecture summary
 
 - `apps/web`: Next.js App Router frontend, React, TypeScript, Tailwind CSS, and a shadcn/ui-compatible component layout.
 - `services/optimizer`: independent FastAPI service with a health endpoint, validated domain models, canonical dataset loader, pure distance/time utilities, an independent route validator, and a local OR-Tools solver module.
-- `fixtures/up_rent_case.json`: canonical original assessment input. An exact tested package-data copy is included with the optimizer so a deployment can load it without relying on a repository-relative path; scenario work must load a separate instance rather than modify either file.
 - `supabase`: reserved migration and test locations only; no Supabase project or database is connected.
 - `docs`: architecture, business rules, decisions, test plan, and AI governance.
 
