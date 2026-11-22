@@ -5,17 +5,33 @@ vi.mock("@/lib/optimizer-api", () => ({
   getDemoDataset: vi.fn(),
   optimizeDataset: vi.fn(),
 }));
+vi.mock("@/lib/auth", () => ({
+  AuthConfigurationError: class AuthConfigurationError extends Error {},
+  AuthenticationError: class AuthenticationError extends Error {},
+  requireAuthenticatedUser: vi.fn(),
+}));
+vi.mock("@/lib/workspace-access", () => ({
+  WorkspaceAccessError: class WorkspaceAccessError extends Error {},
+  requireWorkspaceAccess: vi.fn(),
+}));
+vi.mock("@/lib/optimizer-rate-limit", () => ({
+  OptimizerRateLimitError: class OptimizerRateLimitError extends Error {},
+  assertOptimizerRateLimit: vi.fn(),
+}));
 
 import { POST } from "./route";
 import { optimizeDataset } from "@/lib/optimizer-api";
+import { AuthenticationError, requireAuthenticatedUser } from "@/lib/auth";
+import { requireWorkspaceAccess } from "@/lib/workspace-access";
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/optimizer", () => {
-  it("fails closed in a production build", async () => {
+  it("rejects an unauthenticated production request", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.mocked(requireAuthenticatedUser).mockRejectedValue(new AuthenticationError("Potrebna je prijava."));
     const response = await POST(new Request("http://localhost:3000/api/optimizer", { method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000" } }));
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it("rejects a request from another origin", async () => {
@@ -42,5 +58,16 @@ describe("POST /api/optimizer", () => {
 
     expect(response.status).toBe(200);
     expect(optimizeDataset).toHaveBeenCalledWith(expect.objectContaining({ parameters: expect.objectContaining({ planning_start_at: "2026-01-15T07:30:00+01:00" }), orders: [expect.objectContaining({ earliest_pickup_at: "2026-01-15T08:00:00+01:00" })] }), { optimization_strategy: "BALANCED", require_all_selected_vehicles: true });
+  });
+
+  it("allows a server-verified user with workspace access in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.mocked(requireAuthenticatedUser).mockResolvedValue({ id: "user-1", email: "demo@example.test" });
+    vi.mocked(requireWorkspaceAccess).mockResolvedValue();
+    vi.mocked(optimizeDataset).mockResolvedValue({ status: "FEASIBLE" } as never);
+    const dataset = { vehicles: [{ id: "C", max_payload_kg: 1000, max_simultaneous_machines: 1, start_location_id: "L0", end_location_id: "L0", average_speed_kmh: 40 }], machines: [{ id: "M1", weight_kg: 500 }], locations: [{ id: "L0", x: 0, y: 0 }], orders: [], parameters: { depot_location_id: "L0", max_driving_minutes: 540, pickup_service_minutes: 20, delivery_service_minutes: 20 } };
+    const response = await POST(new Request("http://localhost:3000/api/optimizer", { method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000", "content-type": "application/json" }, body: JSON.stringify(dataset) }));
+    expect(response.status).toBe(200);
+    expect(requireWorkspaceAccess).toHaveBeenCalledWith("user-1");
   });
 });

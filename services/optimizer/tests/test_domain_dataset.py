@@ -8,6 +8,10 @@ from pydantic import ValidationError
 from app.domain.dataset import CANONICAL_DATASET_PATH, load_canonical_dataset
 from app.domain.models import Location, Machine, PlanningDataset, PlanningParameters, Vehicle
 
+REPOSITORY_CANONICAL_DATASET_PATH = (
+    Path(__file__).resolve().parents[3] / "fixtures" / "up_rent_case.json"
+)
+
 
 @pytest.fixture
 def canonical_payload() -> dict[str, object]:
@@ -26,6 +30,11 @@ def test_canonical_dataset_loads_from_any_working_directory(
     assert len(dataset.machines) == 10
     assert len(dataset.locations) == 10
     assert len(dataset.orders) == 10
+
+
+def test_packaged_canonical_dataset_matches_the_repository_source() -> None:
+    """The deployable package data must not drift from the assessment fixture."""
+    assert CANONICAL_DATASET_PATH.read_bytes() == REPOSITORY_CANONICAL_DATASET_PATH.read_bytes()
 
 
 def test_canonical_vehicles_and_machine_weights_are_exact() -> None:

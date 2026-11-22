@@ -19,6 +19,7 @@ import { buildInfeasibilityWarnings } from "@/lib/infeasible-order-warnings";
 import { downloadTransportPlanCsv } from "@/lib/plan-export";
 import { OptimizationHistory, WorkspaceOptimizationHistory } from "@/features/admin/optimization-history";
 import { ScenarioManager } from "@/features/admin/scenario-manager";
+import { WorkspacePersistence } from "@/features/admin/workspace-persistence";
 import { type VehicleRouteSelection } from "@/features/admin/workspace-vehicle-selection";
 import { ORIGINAL_SCENARIO_ID, createOriginalScenario, loadCustomScenarios, loadSavedPlans, saveCustomScenarios, saveSavedPlans, scenarioToOptimizerDataset, type PlanningScenario, type SavedRouteSnapshot } from "@/lib/planning-scenarios";
 import {
@@ -75,7 +76,7 @@ export function OptimizerDashboard(props: OptimizerDashboardProps) {
     selectView(target);
     window.requestAnimationFrame(() => document.getElementById(`optimizer-${target === "plan" ? "plan" : target}-tab`)?.focus());
   }
-  return <div className="optimizer-view-shell">
+  return <div className="optimizer-view-shell">{props.dataset && <WorkspacePersistence dataset={props.dataset} />}
     <header className="optimizer-page-header">
       <div><p className="eyebrow">RADNI PROSTOR PLANIRANJA</p><h1>Optimizacija ruta</h1><p>Odaberite flotu i naloge, provjerite postavke te pregledajte provjereni raspored.</p></div>
       <section className="active-plan-card" aria-label="Aktivni plan">

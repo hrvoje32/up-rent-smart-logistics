@@ -8,7 +8,7 @@ The optimizer is an independent FastAPI service in `services/optimizer`. It owns
 
 ## Planning domain and source data
 
-`fixtures/up_rent_case.json` is the canonical source for the original assessment case. `app.domain.dataset` resolves this fixture relative to its own module location, so it does not depend on the process working directory. Pydantic models define `Vehicle`, `Machine`, `Location`, `TransportOrder`, `PlanningParameters`, and `PlanningDataset`.
+`fixtures/up_rent_case.json` is the canonical source for the original assessment case. The optimizer packages an exact tested copy at `services/optimizer/app/data/up_rent_case.json`, so `app.domain.dataset` can load it relative to its own module location after deployment without depending on the process working directory or the repository root. Pydantic models define `Vehicle`, `Machine`, `Location`, `TransportOrder`, `PlanningParameters`, and `PlanningDataset`.
 
 Dataset-level validation owns unique IDs and cross-record references. Record-level validation owns positive quantities/durations and finite coordinates. Canonical input is never mutated; future scenario simulation must work from a separately loaded dataset instance.
 

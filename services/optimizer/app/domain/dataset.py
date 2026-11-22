@@ -6,8 +6,9 @@ from pathlib import Path
 
 from app.domain.models import PlanningDataset
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
-CANONICAL_DATASET_PATH = REPOSITORY_ROOT / "fixtures" / "up_rent_case.json"
+# This runtime copy is package data so the service can load it after deployment,
+# where the repository root and its development-only paths do not exist.
+CANONICAL_DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "up_rent_case.json"
 
 
 def load_dataset(path: Path) -> PlanningDataset:

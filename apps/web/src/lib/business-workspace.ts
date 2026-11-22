@@ -239,12 +239,17 @@ function migrateScenario(workspace: BusinessWorkspace, scenario: PlanningScenari
 }
 
 function isWorkspace(value: unknown): value is BusinessWorkspace {
-  return typeof value === "object" && value !== null && !Array.isArray(value) && ([1, 2, 3, BUSINESS_WORKSPACE_VERSION] as unknown[]).includes((value as { schema_version?: unknown }).schema_version);
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const candidate = value as Partial<BusinessWorkspace>;
+  return ([1, 2, 3, BUSINESS_WORKSPACE_VERSION] as unknown[]).includes(candidate.schema_version)
+    && Array.isArray(candidate.vehicles) && Array.isArray(candidate.machine_types) && Array.isArray(candidate.machines)
+    && Array.isArray(candidate.locations) && Array.isArray(candidate.orders) && Array.isArray(candidate.drafts)
+    && Array.isArray(candidate.runs);
 }
 
 export function loadBusinessWorkspace(storage: StorageLike, dataset: DemoDataset): BusinessWorkspace {
   const stored = storage.getItem(BUSINESS_WORKSPACE_STORAGE_KEY);
-  if (stored) { try { const parsed: unknown = JSON.parse(stored); if (isWorkspace(parsed)) return migrateWorkspace(clone(parsed)); } catch { /* fall through to recoverable migration */ } }
+  if (stored) { try { const parsed: unknown = JSON.parse(stored); const migrated = migrateBusinessWorkspace(parsed); if (migrated) return migrated; } catch { /* fall through to recoverable migration */ } }
   const workspace = createBusinessWorkspace(dataset);
   const oldScenarios = [createOriginalScenario(dataset), ...loadCustomScenarios(storage)];
   workspace.drafts = oldScenarios.map((scenario) => migrateScenario(workspace, scenario, dataset));
@@ -275,9 +280,14 @@ function legacySnapshot(scenario: PlanningScenario): DemoDataset {
   return { vehicles: scenario.vehicles.filter((vehicle) => scenario.selection.vehicle_ids.includes(vehicle.id)).map((vehicle) => ({ id: vehicle.id, max_payload_kg: vehicle.max_payload_kg, max_simultaneous_machines: vehicle.max_simultaneous_machines, average_speed_kmh: vehicle.average_speed_kmh, ...(routes[vehicle.id] ?? { start_location_id: scenario.parameters.depot_location_id, end_location_id: scenario.parameters.depot_location_id }) })), machines: scenario.machines.map(({ id, weight_kg }) => ({ id, weight_kg })), locations: scenario.locations.map(({ id, x, y }) => ({ id, x, y })), orders: scenario.orders.filter((order) => scenario.selection.order_ids.includes(order.id)).map(({ id, machine_id, pickup_location_id, delivery_location_id }) => ({ id, machine_id, pickup_location_id, delivery_location_id })), parameters: clone(scenario.parameters) };
 }
 
-export function saveBusinessWorkspace(storage: StorageLike, workspace: BusinessWorkspace): void { storage.setItem(BUSINESS_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace)); }
+export function saveBusinessWorkspace(storage: StorageLike, workspace: BusinessWorkspace): void {
+  storage.setItem(BUSINESS_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent<BusinessWorkspace>("up-rent-workspace-saved", { detail: structuredClone(workspace) }));
+}
 
-function migrateWorkspace(workspace: BusinessWorkspace): BusinessWorkspace {
+export function migrateBusinessWorkspace(value: unknown): BusinessWorkspace | null {
+  if (!isWorkspace(value)) return null;
+  const workspace = structuredClone(value);
   return {
     ...workspace,
     schema_version: BUSINESS_WORKSPACE_VERSION,

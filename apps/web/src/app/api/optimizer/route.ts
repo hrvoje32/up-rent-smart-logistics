@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getDemoDataset, OptimizerApiError, optimizeDataset } from "@/lib/optimizer-api";
+import { AuthConfigurationError, AuthenticationError, requireAuthenticatedUser } from "@/lib/auth";
+import { requireWorkspaceAccess, WorkspaceAccessError } from "@/lib/workspace-access";
+import { assertOptimizerRateLimit, OptimizerRateLimitError } from "@/lib/optimizer-rate-limit";
+
+const MAX_OPTIMIZER_REQUEST_BYTES = 256 * 1024;
 import { OptimizerContractError, parseDemoDataset, type OptimizerSettings } from "@/types/optimizer-api";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -31,14 +36,25 @@ function isSameOrigin(request: Request): boolean {
 
 export async function POST(request: Request): Promise<NextResponse> {
   if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Optimizacija je dostupna samo u lokalnom demonstracijskom okruženju." }, { status: 403 });
+    try {
+      const user = await requireAuthenticatedUser();
+      await requireWorkspaceAccess(user.id);
+      assertOptimizerRateLimit(user.id);
+    } catch (error) {
+      const status = error instanceof AuthConfigurationError ? 503 : error instanceof AuthenticationError ? 401 : error instanceof WorkspaceAccessError ? 403 : error instanceof OptimizerRateLimitError ? 429 : 503;
+      return NextResponse.json({ error: status === 401 ? "Potrebna je prijava." : status === 403 ? "Nemate pristup radnom prostoru." : "Sigurna optimizacija nije konfigurirana." }, { status });
+    }
   }
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Ovaj zahtjev nije prihvaćen." }, { status: 403 });
   }
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > MAX_OPTIMIZER_REQUEST_BYTES) return NextResponse.json({ error: "Zahtjev optimizacije je prevelik." }, { status: 413 });
 
   try {
-    const raw: unknown = await request.json().catch(() => null);
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_OPTIMIZER_REQUEST_BYTES) return NextResponse.json({ error: "Zahtjev optimizacije je prevelik." }, { status: 413 });
+    const raw: unknown = JSON.parse(text);
     const payload = raw === null ? null : asRecord(raw);
     const dataset = payload === null ? undefined : payload.dataset === undefined ? parseDemoDataset(payload) : parseDemoDataset(payload.dataset);
     const settings = payload === null ? {} : parseSettings(payload.settings);

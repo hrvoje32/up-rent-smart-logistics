@@ -6,7 +6,7 @@ Tasks 00–05 establish the local repository foundation, canonical planning inpu
 
 - `apps/web`: Next.js App Router frontend, React, TypeScript, Tailwind CSS, and a shadcn/ui-compatible component layout.
 - `services/optimizer`: independent FastAPI service with a health endpoint, validated domain models, canonical dataset loader, pure distance/time utilities, an independent route validator, and a local OR-Tools solver module.
-- `fixtures/up_rent_case.json`: canonical original assessment input; scenario work must load a separate instance rather than modify this source fixture.
+- `fixtures/up_rent_case.json`: canonical original assessment input. An exact tested package-data copy is included with the optimizer so a deployment can load it without relying on a repository-relative path; scenario work must load a separate instance rather than modify either file.
 - `supabase`: reserved migration and test locations only; no Supabase project or database is connected.
 - `docs`: architecture, business rules, decisions, test plan, and AI governance.
 
@@ -100,9 +100,13 @@ The optional **Distance Analysis** disclosure compares the authoritative Euclide
 
 Every route card finishes with a print-friendly **Final transport report**. It reuses the validated metrics and simulated timeline to report capacity, active/idle state, simulation date/time and depot facts, time and distance breakdowns, operations, loads, validation, unserved-order diagnostics, and explicitly unscheduled breaks. The global print action hides navigation and controls while retaining critical tables and report content.
 
+## Deployment preparation
+
+The repository contains a prepared two-service Vercel configuration: Next.js remains the only public service while FastAPI / OR-Tools is reached through a private service binding. Production optimization requires a server-verified Supabase user and an RLS-visible workspace, and fails closed without its configuration. See [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) and [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) for setup, data migration, and cloud smoke tests.
+
 ## Current limitations
 
-The project has no connected database, authentication, document processing, maps, live tracking, AI integration, or deployment configuration. The API and dashboard are for controlled local demo use only. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
+The project has no connected database, authentication, document processing, maps, live tracking, or AI integration. Deployment configuration is prepared but not deployed or production-authorized. The API and dashboard are for controlled local demo use only. Solver results can vary by OR-Tools version, hardware, and bounded search settings; no global optimum is claimed.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for the planned boundaries and documented original requirements.
 # Editable planning scenarios (Task 05D)
