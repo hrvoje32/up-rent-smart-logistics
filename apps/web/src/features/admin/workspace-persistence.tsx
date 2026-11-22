@@ -33,7 +33,7 @@ export function WorkspacePersistence({ dataset }: { dataset: DemoDataset }) {
     setCloud(payload);
     setMessage(payload.workspace
       ? "Cloud radni prostor je dostupan. Po potrebi ga sigurno sjedinite s lokalnim podacima."
-      : "Cloud je spreman. Potvrdite uvoz lokalnog radnog prostora prije prve optimizacije.");
+      : "Cloud je spreman. Jednom spremite postojeći lokalni radni prostor prije prve optimizacije.");
     return payload;
   }
 
@@ -76,5 +76,5 @@ export function WorkspacePersistence({ dataset }: { dataset: DemoDataset }) {
     reader.readAsText(file);
   }
   const localCounts = workspaceCounts(loadBusinessWorkspace(window.localStorage, dataset));
-  return <section className="workspace-persistence" aria-label="Sigurnosna kopija i sigurna pohrana"><div><p className="eyebrow">PODACI I SIGURNOST</p><h2>Radni prostor</h2><p>{message}</p><small>{localCounts.vehicles} vozila · {localCounts.machines} strojeva · {localCounts.locations} lokacija · {localCounts.orders} naloga · {localCounts.drafts} planova · {localCounts.runs} pokretanja</small></div><div className="workspace-persistence__actions"><button type="button" className="secondary-button" onClick={() => downloadBackup(createWorkspaceBackup(window.localStorage, dataset))}>Preuzmi sigurnosnu kopiju JSON</button><label className="secondary-button">Vrati/ujedini JSON<input type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) restoreFile(file); event.currentTarget.value = ""; }} /></label>{configured && <>{email && <small>Račun: {email}</small>}{cloud?.workspace ? <button type="button" className="primary-button" onClick={() => void mergeCloudWithLocal()}>Sigurno sjedini s cloudom</button> : <button type="button" className="primary-button" onClick={() => void importLocalToCloud()}>Potvrdi uvoz u cloud</button>}</>}</div></section>;
+  return <section className="workspace-persistence" aria-label="Sigurnosna kopija i sigurna pohrana"><div><p className="eyebrow">PODACI I SIGURNOST</p><h2>Radni prostor</h2><p>{message}</p><small>{localCounts.vehicles} vozila · {localCounts.machines} strojeva · {localCounts.locations} lokacija · {localCounts.orders} naloga · {localCounts.drafts} planova · {localCounts.runs} pokretanja</small></div><div className="workspace-persistence__actions"><button type="button" className="secondary-button" onClick={() => downloadBackup(createWorkspaceBackup(window.localStorage, dataset))}>Preuzmi sigurnosnu kopiju JSON</button><label className="secondary-button">Vrati/ujedini JSON<input type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) restoreFile(file); event.currentTarget.value = ""; }} /></label>{configured && <>{email && <small>Račun: {email}</small>}{cloud?.workspace ? <button type="button" className="primary-button" onClick={() => void mergeCloudWithLocal()}>Sigurno sjedini s cloudom</button> : <button type="button" className="primary-button" onClick={() => void importLocalToCloud()}>Spremi lokalni radni prostor u cloud</button>}</>}</div></section>;
 }

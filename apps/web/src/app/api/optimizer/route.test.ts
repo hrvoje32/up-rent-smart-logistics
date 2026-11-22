@@ -48,7 +48,7 @@ describe("POST /api/optimizer", () => {
     const response = await POST(new Request("http://localhost:3000/api/optimizer", { method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000" } }));
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("Potvrdi uvoz u cloud") });
+    await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("spremite lokalni radni prostor") });
   });
 
   it("forwards a validated custom dataset only in the local environment", async () => {

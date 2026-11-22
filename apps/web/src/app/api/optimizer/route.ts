@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       assertOptimizerRateLimit(user.id);
     } catch (error) {
       const status = error instanceof AuthConfigurationError ? 503 : error instanceof AuthenticationError ? 401 : error instanceof WorkspaceAccessError ? 403 : error instanceof OptimizerRateLimitError ? 429 : 503;
-      return NextResponse.json({ error: status === 401 ? "Potrebna je prijava." : status === 403 ? "Prije optimizacije odaberite „Potvrdi uvoz u cloud” u kartici Podaci i sigurnost." : "Sigurna optimizacija nije konfigurirana." }, { status });
+      return NextResponse.json({ error: status === 401 ? "Potrebna je prijava." : status === 403 ? "Prije optimizacije jednom spremite lokalni radni prostor u cloud u kartici Podaci i sigurnost." : "Sigurna optimizacija nije konfigurirana." }, { status });
     }
   }
   if (!isSameOrigin(request)) {
